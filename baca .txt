@@ -1,0 +1,14 @@
+cara menjalankan. 
+
+-ambil screenshot icon yang ingin Anda targetkan
+-pastikan screenshot tepat seperti sample di folder templates
+-hasil screenshot masukan ke folder templates
+
+catatan : 
+  semakin banyak gambar yang berada di folder templates maka sistem akan semakin delay dalam upaya meng-klik target, jika ingin kecepatan usahakan gambar hanya satu di folder 
+
+-selanjutnya jalankan program ( klik dua kali ) run_autotap.bat 
+-mulai program dengan klik 6 sampai muncul tulisan running 
+-jika ingin di setop pencet dan tahan 7 
+
+kalian bisa edit kecepatan di auto_tap.py bagian bawah 
