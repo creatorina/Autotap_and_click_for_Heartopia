@@ -60,7 +60,6 @@ IF NOT EXIST templates (
 
 echo.
 echo 🚀 Menjalankan AutoTap...
-echo Tekan CTRL+C untuk stop
 echo.
 
 python launcher_watch.py
