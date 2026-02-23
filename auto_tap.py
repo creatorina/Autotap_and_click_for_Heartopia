@@ -15,10 +15,12 @@ pyautogui.PAUSE = 0
 pyautogui.FAILSAFE = False
 
 running = False
+pause_event = threading.Event()
+
 mode = "click"
-target_key = "f"          # ====== KEY BUTTON
-key_press_count = 1       # ====== HOW MANY CLICKS
-cooldown_after_key = 2.1  # ====== SETING COOLDOWN AFTER CLICK
+target_key = "f"		# ======== SETTING BUTTON KEY
+key_press_count = 1		# ======== SETING HOW MANY TIMES
+cooldown_after_key = 2.1	# ======== COOLDOWN AFTER KEY
 
 template_folder = "templates"
 script_path = os.path.abspath(__file__)
@@ -32,14 +34,21 @@ last_snapshot = set()
 poll_interval = 3
 
 
-# ================= HOTKEY DISPLAY =================
-def print_hotkeys():
+# ================= STATUS DISPLAY =================
+def print_status():
     print("\n" + "-" * 35)
     print("HOTKEYS CONTROL:")
     print("6 = PLAY")
-    print("7 = HOLD TO PAUSE")
+    print("7 = PAUSE")
     print("8 = MODE CLICK MOUSE")
     print("9 = MODE KEY (" + target_key.upper() + ")")
+    print("-" * 35)
+
+    if running:
+        print("▶ STATUS : RUNNING | MODE :", mode.upper())
+    else:
+        print("⏸ STATUS : PAUSED")
+
     print("-" * 35 + "\n")
 
 
@@ -67,7 +76,7 @@ def load_templates():
     except Exception as e:
         print("Template load error:", e)
     reload_lock = False
-    print_hotkeys()
+    print_status()
 
 
 # ================= WATCH TEMPLATE =================
@@ -77,12 +86,13 @@ class TemplateWatcher(FileSystemEventHandler):
             load_templates()
 
 
-# ================= WATCH SELF SCRIPT =================
+# ================= AUTO RESTART WHEN SAVE =================
 class ScriptWatcher(FileSystemEventHandler):
     def on_modified(self, event):
         if os.path.abspath(event.src_path) == script_path:
-            print("\n⚡ Script upgraded!.\n")
-            print_hotkeys()
+            print("\n⚡ Script upgraded! Restarting...\n")
+            time.sleep(0.5)
+            os.execv(sys.executable, [sys.executable] + sys.argv)
 
 
 def start_watchdog():
@@ -121,22 +131,21 @@ def is_close(pos, pos_list, distance=40):
             return True
     return False
 
+
 # ================= VERIFIKASI SEBELUM KLIK =================
 def verify_target(template, x, y, w, h):
-    """Memastikan target masih ada di koordinat sebelum klik dilakukan."""
     try:
-        # Ambil region kecil di sekitar koordinat target
         reg_x, reg_y = int(x - w//2), int(y - h//2)
         screenshot = pyautogui.screenshot(region=(reg_x, reg_y, w, h))
         check_screen = cv2.cvtColor(np.array(screenshot), cv2.COLOR_BGR2GRAY)
-        
-        # Bandingkan ulang dengan template
+
         result = cv2.matchTemplate(check_screen, template, cv2.TM_CCOEFF_NORMED)
         _, max_val, _, _ = cv2.minMaxLoc(result)
-        
-        return max_val >= 0.80 # Sesuaikan threshold jika diperlukan
+
+        return max_val >= 0.80
     except:
         return False
+
 
 # ================= INIT =================
 if not os.path.exists(template_folder):
@@ -148,7 +157,8 @@ last_snapshot = set(os.listdir(template_folder))
 threading.Thread(target=start_watchdog, daemon=True).start()
 threading.Thread(target=polling_watcher, daemon=True).start()
 
-print_hotkeys()
+print_status()
+
 
 # ================= MAIN LOOP =================
 try:
@@ -156,31 +166,28 @@ try:
 
         if keyboard.is_pressed("6"):
             running = True
-            print(f"▶ RUNNING | Mode: {mode.upper()}")
-            print_hotkeys()
-            time.sleep(0.3)
+            pause_event.clear()
+            print_status()
+            time.sleep(0.2)
 
         if keyboard.is_pressed("7"):
             running = False
-            print("⏸ PAUSED")
-            print_hotkeys()
-            time.sleep(0.3)
+            pause_event.set()   # STOP
+            print_status()
+            time.sleep(0.2)
 
         if keyboard.is_pressed("8"):
             mode = "click"
-            print("🖱 MODE: CLICK MOUSE")
-            print_hotkeys()
-            time.sleep(0.3)
+            print_status()
+            time.sleep(0.2)
 
         if keyboard.is_pressed("9"):
             mode = "key"
-            print(f"⌨ MODE: PRESS KEY ({target_key.upper()})")
-            print_hotkeys()
-            time.sleep(0.3)
-
+            print_status()
+            time.sleep(0.2)
 
         if not running:
-            time.sleep(0.01)
+            time.sleep(0.005)
             continue
 
         screenshot = pyautogui.screenshot()
@@ -190,28 +197,35 @@ try:
         clicked_positions.clear()
 
         for name, template in templates:
+
+            if pause_event.is_set():
+                break
+
             w, h = template.shape[::-1]
             result = cv2.matchTemplate(screen, template, cv2.TM_CCOEFF_NORMED)
             loc = np.where(result >= 0.80)
 
             for pt in zip(*loc[::-1]):
+
+                if pause_event.is_set():
+                    break
+
                 x = pt[0] + w // 2
                 y = pt[1] + h // 2
 
                 if is_close((x, y), clicked_positions):
                     continue
 
-                # --- FITUR ANTI MISS-KLIK: VERIFIKASI ULANG ---
                 if not verify_target(template, x, y, w, h):
-                    continue 
+                    continue
 
                 found_any = True
                 clicked_positions.append((x, y))
 
                 if mode == "click":
-                    pyautogui.moveTo(x, y, duration=0.01)  # === SPEED MOVE CURSOR
+                    pyautogui.moveTo(x, y, duration=0.01)	# === SPEED MOVE POINTER
                     pyautogui.mouseDown()
-                    time.sleep(0.01)                       # === SPEED CLICK MOUSE
+                    time.sleep(0.01)				# === SPEED CLICK
                     pyautogui.mouseUp()
                 else:
                     for _ in range(key_press_count):
@@ -219,10 +233,10 @@ try:
                     time.sleep(cooldown_after_key)
                     break
 
-                time.sleep(0.001)
+                time.sleep(0.005)
 
-        if not found_any:           # ======== FAST SCAN SCREEN 
-            time.sleep(0.005)
+        if not found_any:
+            time.sleep(0.005)			# === SPEED SCAN SCREEN
 
 except Exception as e:
     print("Runtime error:", e)
