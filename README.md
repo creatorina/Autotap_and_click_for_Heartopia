@@ -11,6 +11,7 @@ Skrip ini adalah alat otomasi berbasis Python yang dirancang khusus untuk memper
 
 ### **Cara Kerja Skrip**
 
+![Tampilan Bot](screenshots/image1.png)
 
 Secara teknis, skrip ini bekerja melalui alur berikut:
 
