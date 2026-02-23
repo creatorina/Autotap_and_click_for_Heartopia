@@ -3,9 +3,9 @@ title AUTO TAP BOT LAUNCHER
 color 0A
 cls
 
-echo ========================================
-echo     AUTO TAP LAUNCHER BY CR FAUZI 08
-echo ========================================
+echo =================================================
+echo     AUTO TAP LAUNCHER BY YOUTUBE CR FAUZI 08
+echo =================================================
 echo.
 
 :: ===============================
@@ -40,6 +40,12 @@ python -m pip install --upgrade pip >nul 2>&1
 
 echo Checking Keyboard...
 python -m pip install keyboard >nul 2>&1 && echo Keyboard  : Ready!
+
+echo Checking Pillow...
+python -m pip install Pillow >nul 2>&1 && echo Keyboard  : Ready!
+
+echo Checking pyscreeze...
+python -m pip install pyscreeze >nul 2>&1 && echo Keyboard  : Ready!
 
 echo Checking PyAutoGUI...
 python -m pip install pyautogui >nul 2>&1 && echo PyAutoGUI : Ready!
